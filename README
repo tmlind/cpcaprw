@@ -1,0 +1,27 @@
+READ AND WRITE CPCAP PMIC REGISTERS ON ANDROID DEVICES
+
+This utility allows easily reading and writing the CPCAP PMIC registers
+when booted to the Android kernel. The Motorola custom CPCAP PMIC is used
+on various Motorola phones and tablets such as droid 4.
+
+Note that it currently only supports the mainline kernel regmap suitable
+registers offsets as listed in motorola-cpcap.h and not the Motorola
+mapphone Linux kernel register index.
+
+To build and use, just do:
+
+$ export CROSS_COMPILE=/path/to/arm-linux-gnueabi
+$ make
+$ adb push cpcaprw /sdcard
+$ adb shell
+$ su
+# mount -o rw,remount /system/bin
+# cp/sdcard/cpcaprw /system/bin/
+# cpcaprw 0x0048 # read CPCAP_REG_VERSC1
+CPCAP register18 0x0048=0x0013
+
+For write access, you probably need to modify the selinux permissions
+for /dev/cpcap with chcon or something similar.
+
+And note that to use the binary with most Android kernels, the compiler
+must be armel and not armhf.
