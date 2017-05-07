@@ -15,6 +15,8 @@
 #include <asm/errno.h>
 #include <sys/ioctl.h>
 
+#define CPCAP_REG_MAX_OFFSET	0x7d18
+
 /*
  * Copied from Motorola mapphone Linux kernel include/linux/spi/cpcap.h
  */
@@ -479,14 +481,49 @@ static int cpcap_init_regwrite(struct cpcap_regacc *reg, int offset)
 	reg->value = 0;
 	reg->mask = 0;
 
-	for (i = 0; i < CPCAP_NUM_REG_CPCAP; i++)
+	for (i = 0; i < CPCAP_NUM_REG_CPCAP; i++) {
 		if ((register_info_tbl[i].address * 4) == offset) {
 			reg->mask = register_info_tbl[i].rbw_mask;
 			reg->reg = i;
 			return i;
 		}
+	}
 
 	return -EINVAL;
+}
+
+/*
+ * Produces output similar to mainline kernel debugfs for
+ * cat /sys/kernel/debug/regmap/spi1.0/registers.
+ *
+ * Note that some values are not read by the ioctl with the
+ * Android kernel and those are always shown as 0000.
+ */
+static int cpcap_dump_all(int fd)
+{
+	struct cpcap_regacc reg;
+	int index, i, error = 0;
+
+	for (i = 0; i <= CPCAP_REG_MAX_OFFSET; i += 4) {
+		index = cpcap_init_regwrite(&reg, i);
+
+		/* Just print 0000 for unlisted registers */
+		if (index < 0) {
+			printf("%04x: 0000\n", i);
+			continue;
+		}
+
+		reg.value = 0;
+
+		error = ioctl(fd, CPCAP_IOCTL_TEST_READ_REG, &reg);
+		if (error < 0) {
+			fprintf(stderr, "read ioctl failed: %i\n", error);
+			break;
+		}
+		printf("%04x: %04x\n", i, reg.value);
+	}
+
+	return error;
 }
 
 /*
@@ -554,13 +591,26 @@ int main(int argc, char *argv[])
 	int error, fd;
 
 	if (argc < 2) {
-		printf("usage: %s offset[=value]\n", argv[0]);
+		printf("usage: %s [-all|offset[=value]]\n", argv[0]);
 		printf("\nNote that offsets are not contiguous.\n");
 		return -EINVAL;
 	}
 
+	fd = open(file_name, O_RDWR);
+	if (fd == -1) {
+		fprintf(stderr, "Could not open %s: %i\n",
+			file_name, fd);
+		error = fd;
+		return fd;
+	}
+
 	running = malloc(strlen(argv[1] + 1));
 	strncpy(running, argv[1], strlen(argv[1]));
+
+	if (!strncmp("--all", running, 5)) {
+		error = cpcap_dump_all(fd);
+		goto close;
+	}
 
 	token = strsep(&running, delimiters);
 	if (token) {
@@ -573,13 +623,6 @@ int main(int argc, char *argv[])
 		offset = strtol(argv[1], NULL, 16);
 	}
 
-	fd = open(file_name, O_RDWR);
-	if (fd == -1) {
-		fprintf(stderr, "Could not open %s: %i\n",
-			file_name, fd);
-		error = fd;
-		return fd;
-	}
 
 	if (val < 0)
 		error = cpcap_read(fd, offset, &val);
