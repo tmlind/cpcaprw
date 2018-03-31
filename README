@@ -28,4 +28,4 @@ must be armel and not armhf.
 
 To see the cpcap registers with the mainline kernel, just do:
 
-# cat /sys/kernel/debug/regmap/spi1.0/registers
+# cat /sys/kernel/debug/regmap/spi0.0/registers

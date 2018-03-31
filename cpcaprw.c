@@ -591,7 +591,7 @@ int main(int argc, char *argv[])
 	int error, fd;
 
 	if (argc < 2) {
-		printf("usage: %s [-all|offset[=value]]\n", argv[0]);
+		printf("usage: %s [--all|offset[=value]]\n", argv[0]);
 		printf("\nNote that offsets are not contiguous.\n");
 		return -EINVAL;
 	}
