@@ -8,17 +8,20 @@ Note that it currently only supports the mainline kernel regmap suitable
 registers offsets as listed in motorola-cpcap.h and not the Motorola
 mapphone Linux kernel register index.
 
-To build and use, just do:
+To build and use:
 
-$ export CROSS_COMPILE=/path/to/arm-linux-gnueabi
-$ make
-$ adb push cpcaprw /sdcard
-$ adb shell
-$ su
-# mount -o rw,remount /system/bin
-# cp/sdcard/cpcaprw /system/bin/
-# cpcaprw 0x0048 # read CPCAP_REG_VERSC1
-CPCAP register18 0x0048=0x0013
+1.  fetch the android NDK from https://developer.android.com/ndk/downloads/index.html
+2.  extract
+3.  run make_standalone_toolchain.py --arch arm --force --api 21 --stl gnustl --install-dir=$(SOME_PATH)
+4.  export CROSS_COMPILE=$(SOME_PATH)/binary
+5.  make
+6.  adb push cpcaprw /sdcard
+7.  adb shell
+8.  su
+9.  mount -o rw,remount /system/bin
+10. cp/sdcard/cpcaprw /system/bin/
+11. cpcaprw 0x0048 # read CPCAP_REG_VERSC1
+12. CPCAP register18 0x0048=0x0013
 
 For write access, you probably need to modify the selinux permissions
 for /dev/cpcap with chcon or something similar.
